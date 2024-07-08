@@ -1,9 +1,11 @@
 import numpy as np
 import pandas as pd
-from flask import Flask, Blueprint, jsonify
+from flask import Blueprint, jsonify
 from statsmodels.tsa.arima.model import ARIMA
 
+
 dhtRoute = Blueprint("dht", __name__, url_prefix='/dht')
+
 
 @dhtRoute.route("/hour", methods=["GET"])
 def inicio():

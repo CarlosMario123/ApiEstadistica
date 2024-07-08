@@ -5,12 +5,15 @@ class Consumo:
     def __init__(self):
         self.bd = BD()
 
-    def get_consumed_agua(self):
-        
+    def get_consumed(self,option="water"):
+        value = "Consumo_de_agua"
+        if option == "food":
+            value = "Consumo_de_alimento"
+            
         try:
             connection = self.bd.get_connection()
             cursor = connection.cursor()
-            query = "SELECT * FROM Consumo_de_agua;"
+            query = f"SELECT * FROM {value};"
             cursor.execute(query)
             results = cursor.fetchall()
             formatted_data = [(day, value, date.date()) for day, value, date in results]
@@ -25,5 +28,6 @@ class Consumo:
                 cursor.close()
             if connection:
                 connection.close()
+                
 
 
