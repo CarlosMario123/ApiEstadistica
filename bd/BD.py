@@ -5,6 +5,7 @@ import os
 
 class BD:
     def __init__(self):
+        load_dotenv()
         self.db_host = os.getenv("DB_HOST")
         self.db_user = os.getenv("DB_USER")
         self.db_password = os.getenv("DB_PASSWORD")

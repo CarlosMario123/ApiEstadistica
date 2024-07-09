@@ -5,12 +5,20 @@ def checkFactibility():
     consumo = Consumo()
     data = consumo.get_consumed()
     data = groupForAge(data,4)
-    
-    
-    return data
+    send = {}
+    for d in data:
+        if data[d] > 0:
+            send[d] = data[d]
+   
+    return send
 
 def checkFactFood():
     consumo = Consumo()
     data = consumo.get_consumed(option="food")
     data = groupForAge(data,4)
-    return data
+    send = {}
+    for d in data:
+        if data[d] > 0:
+            send[d] = data[d]
+   
+    return send
