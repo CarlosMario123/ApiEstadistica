@@ -2,3 +2,4 @@ venv
 .env
 example.py
 mosquitto.py
+private.pem

@@ -21,7 +21,7 @@ def on_connect(client, userdata, flags, rc):
 def on_message(client, userdata, msg):
     print(f"Mensaje recibido en {msg.topic}: {msg.payload.decode()}")
     if msg.topic == mqtt_topic_sub:
-        data = np.random.normal(24, 1, 60).tolist()
+        data = np.random.normal(24, 1, 260).tolist()
         data_str = ','.join(map(str, data))
         print(data_str)
         client.publish(mqtt_topic_pub, data_str)

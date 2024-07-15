@@ -17,10 +17,15 @@ mqtt_password = "1234"                  # Clave MQTT
 received_data = None
 
 def on_connect(client, userdata, flags, rc):
-    print("Conectado al broker con código de resultado " + str(rc))
-    client.subscribe(mqtt_topic_response)
+    """Callback para cuando el cliente MQTT se conecta."""
+    if rc == 0:
+        print("Conectado al broker MQTT con éxito.")
+        client.subscribe(mqtt_topic_response)
+    else:
+        print(f"Fallo al conectar al broker MQTT. Código de retorno={rc}")
 
 def on_message(client, userdata, msg):
+    """Callback para cuando se recibe un mensaje MQTT."""
     global received_data
     received_data = msg.payload.decode()
 
@@ -28,52 +33,63 @@ mqtt_client = mqtt.Client()
 mqtt_client.on_connect = on_connect
 mqtt_client.on_message = on_message
 mqtt_client.username_pw_set(mqtt_username, mqtt_password)
-mqtt_client.connect(mqtt_broker, mqtt_port, 60)
-mqtt_client.loop_start()  # Iniciar el loop en segundo plano
+
+try:
+    mqtt_client.connect(mqtt_broker, mqtt_port, 60)
+    mqtt_client.loop_start()  # Iniciar el loop en segundo plano
+except ConnectionRefusedError:
+    print("No se puede conectar al broker MQTT. Verifique la configuración.")
 
 @dhtRoute.route("/hour", methods=["GET"])
 def inicio():
+    """Endpoint para obtener la predicción de temperatura para las próximas 6 horas."""
     datos_temperatura = leer_datos_dht11()
 
     if isinstance(datos_temperatura, str):
         return jsonify({"Error": datos_temperatura})
 
-    if len(datos_temperatura) < 120:
-        datos_temperatura.extend([datos_temperatura[-1]] * (120 - len(datos_temperatura)))
-
     serie_temperatura = pd.Series(datos_temperatura)
 
     try:
+        # Ajustar el modelo ARIMA con parámetros optimizados según análisis previo
         model = ARIMA(serie_temperatura, order=(5, 1, 0))
         model_fit = model.fit()
 
-        prediccion = model_fit.forecast(steps=120)
+        # Realizar la predicción para las próximas 6 horas (12 pasos)
+        prediccion = model_fit.forecast(steps=12)
 
-        prediccion_lista = prediccion.tolist()
-        media = np.mean(prediccion_lista)
+        # Calcular la media de la predicción
+        media_prediccion = np.mean(prediccion)
+
+        # Preparar la respuesta JSON con la predicción media
         respuesta = {
-            "prediccion_proxima_hora": media
+            "prediccion_proximas_6_horas": media_prediccion
         }
         return jsonify(respuesta)
     
     except Exception as e:
-        return jsonify({"Error": str(e)})
+        return jsonify({"Error": f"Error en el modelo ARIMA: {str(e)}"})
 
 def leer_datos_dht11():
+    """Función para leer los datos de temperatura desde el sensor DHT11 a través de MQTT."""
     global received_data
     received_data = None
 
-    mqtt_client.publish(mqtt_topic_request, "solicitar_datos")
-
-    timeout = time.time() + 5  # Esperar hasta 5 segundos por la respuesta
-    while received_data is None and time.time() < timeout:
-        time.sleep(0.1)
-
-    if received_data is None:
-        return "Lo sentimos, los datos no se pudieron obtener. Intente de nuevo más tarde."
-
     try:
+        # Publicar solicitud para obtener datos del sensor DHT11
+        mqtt_client.publish(mqtt_topic_request, "solicitar_datos")
+
+        # Esperar hasta 5 segundos para recibir la respuesta del sensor
+        timeout = time.time() + 5
+        while received_data is None and time.time() < timeout:
+            time.sleep(0.1)
+
+        if received_data is None:
+            return "Error: No se recibieron datos del sensor DHT11."
+
+        # Convertir los datos recibidos a una lista de números (temperaturas)
         datos = list(map(float, received_data.split(',')))
         return datos
-    except ValueError:
-        return "Error al procesar los datos recibidos. Por favor, inténtelo nuevamente."
+    
+    except Exception as e:
+        return f"Error en la lectura de datos del sensor DHT11: {str(e)}"
