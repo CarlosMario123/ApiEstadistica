@@ -3,3 +3,4 @@ venv
 example.py
 mosquitto.py
 private.pem
+public.pem

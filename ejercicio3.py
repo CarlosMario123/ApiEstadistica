@@ -1,23 +1,37 @@
+import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
 import scipy.stats as stats
+import statsmodels.api as sm
+from statsmodels.formula.api import ols
+import matplotlib.pyplot as plt
+import seaborn as sns
 
-# Parámetros de la distribución binomial
-n = 10
-p = 0.3
-binomial = stats.binom(n, p)  # Distribución binomial
+# Supongamos que tienes un DataFrame con tus datos
+data = pd.DataFrame({
+    'peso_inicial': [1.2, 1.3, 1.1, 1.4, 1.3, 1.2, 1.1, 1.4, 1.3, 1.2],
+    'peso_final': [2.5, 2.7, 2.4, 2.8, 2.6, 2.5, 2.4, 2.7, 2.6, 2.5],
+    'alimento': ['A', 'A', 'A', 'A', 'B', 'B', 'B', 'B', 'C', 'C']
+})
 
-# Rango de valores x para cubrir la mayor parte de la distribución
-x = np.arange(binomial.ppf(0.01), binomial.ppf(0.99))
-fmp = binomial.pmf(x)  # Función de Masa de Probabilidad
+# Calcular la ganancia de peso
+data['ganancia_peso'] = data['peso_final'] - data['peso_inicial']
 
-# Graficar la distribución binomial
-plt.plot(x, fmp, '--', color='blue')  # Línea discontinua para la PMF
-plt.vlines(x, 0, fmp, colors='b', lw=5, alpha=0.5)  # Líneas verticales en los puntos
-plt.title('Distribución Binomial (n=10, p=0.3)')
-plt.ylabel('Probabilidad')
-plt.xlabel('Número de accidentes debido a la falta de sueño')
-plt.grid(axis='y', linestyle='--', alpha=0.7)  # Cuadrícula en el eje y
+# Análisis descriptivo
+descriptive_stats = data.groupby('alimento')['ganancia_peso'].describe()
+print(descriptive_stats)
 
-# Mostrar la gráfica
+# Visualización de datos
+sns.boxplot(x='alimento', y='ganancia_peso', data=data)
+plt.title('Ganancia de Peso por Tipo de Alimento')
 plt.show()
+
+# ANOVA
+model = ols('ganancia_peso ~ C(alimento)', data=data).fit()
+anova_table = sm.stats.anova_lm(model, typ=2)
+print(anova_table)
+
+# Si ANOVA es significativa, realizar prueba post-hoc de Tukey
+from statsmodels.stats.multicomp import pairwise_tukeyhsd
+
+tukey = pairwise_tukeyhsd(endog=data['ganancia_peso'], groups=data['alimento'], alpha=0.05)
+print(tukey)
